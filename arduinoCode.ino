@@ -17,7 +17,8 @@
 // 13 A19 (38) - Octave Down
 // 14 A18 (37) - Middle C
 // 15 A17 (36) - Octave Up
-// 16 A12 (31) - Toggle 
+// 16 A13 (32) - Toggle Vibrato
+// 17 A12 (31) - Toggle Octave
 
 // A10 (64)
 // A11 (65)
@@ -34,7 +35,7 @@ int thresh = 100;
 byte flatName = B11111;
 byte sharpName = B1011011;
 
-int pinNum[17] = {9,8,7,6,5,4,3,2,1,0,67,66,39,38,37,36,32};
+int pinNum[18] = {9,8,7,6,5,4,3,2,1,0,67,66,39,38,37,36,32,31};
 //int pinNum[6] = {9,8,7,6,5,31};
 //int pinNum[17] = {9,8,7,6,5,4,3,2,1,0,67,66,39,38,37,36,31};
 unsigned char CKeyNote[13] = {60,61,62,63,64,65,66,67,68,69,70,71,72};
@@ -43,18 +44,23 @@ byte CKeyNoteName[16] = {0x4E,0,0x7E,0,0x4F,0,0x47,0,0x5F,0,0x77,0,0x7F,0,0x4E,0
 byte CKeyFNoteName[16] = {0x4E,flatName,0x7E,flatName,0x4F,flatName,0x47,flatName,0x5F,flatName,0x77,flatName,0x7F,flatName,0x4E,flatName};
 byte CKeySNoteName[16] = {0x4E,sharpName,0x7E,sharpName,0x4F,sharpName,0x47,sharpName,0x5F,sharpName,0x77,sharpName,0x7F,sharpName,0x4E,sharpName};
 
-//unsigned char FKeyNote[8]= {65,67,69,70,72,74,76,77};
-//byte FKeyNoteName[16] = {0x47,0,0x5F,0,0x77,0,0x7F,flatName,0x4E,0,0x7E,0,0x4F,0,0x47,0};
-//byte FKeyFNoteName[16] = {0x47,flatName,0x5F,flatName,0x77,flatName,0x77,0,0x4E,flatName,0x7E,flatName,0x4F,flatName,0x47,flatName};
-//byte FKeySNoteName[16] = {0x47,sharpName,0x5F,sharpName,0x77,sharpName,0x7F,0,0x4E,sharpName,0x7E,sharpName,0x4F,sharpName,0x47,sharpName};
-
-//unsigned char BfKeyNote[8] = {58,60,62,63,65,67,69,70};
-//byte BfKeyNoteName[16] = {0x7F,flatName,0x4E,0,0x7E,0,0x4F,flatName,0x47,0,0x5F,0,0x77,0,0x7F,flatName};
-//byte BfKeyFNoteName[16] = {0x77,0,0x4E,flatName,0x7E,flatName,0x7E,0,0x47,flatName,0x5F,flatName,0x77,flatName,0x77,0};
-//byte BfKeySNoteName[16] = {0x7F,0,0x4E,sharpName,0x7E,sharpName,0x4F,0,0x47,sharpName,0x5F,sharpName,0x77,sharpName,0x7F,0};
-
 unsigned char KeyNote[8];
-bool NoteOn[13] = {false, false, false, false, false, false, false, false, false, false, false, false, false};
+bool NoteOn[86];
+//bool NoteOn[13] = {false, false, false, false, false, false, false, false, false, false, false, false, false};
+bool NoteVar[3][3] = 
+{
+  {13,12,11},
+  {1,0,-1},
+  {-11,-12,-13}
+};
+
+//     | shar | natu | flat
+// up  |  13  |  12  |  11 
+// 0   |   1  |   0  |  -1
+// dow | -11  | -12  | -13
+int octArr = 0;
+int accArr = 0;
+
 bool volControl = true;
 bool cKey = true;
 bool fKey = false;
@@ -63,7 +69,12 @@ const int sharpThresh = 700;
 const int flatThresh = 350;
 bool flat = false;
 bool sharp = false;
+bool octDown = false;
+bool octUp = false;
+bool octDowned = false;
+bool octUped = false;
 int octaveShift = 0;
+int togOctaveShift = 0;
 unsigned long lastOctaveDown;
 unsigned long lastOctaveUp;
 
@@ -87,27 +98,45 @@ void loop() {
 
   double vol = 0;
 
-  for (int i = 0; i < 17; i++) {
+  for (int i = 0; i < 18; i++) {
     volt = analogRead(pinNum[i]);
-//    if (i == 16) { //toggle
-          if (i == 16) { //toggle
+    if (i == 16) { //toggle vibrato
         if (volt <= flatThresh) {
           Serial.println("flat");
           sharp = false;
           flat = true;
+          accArr = 2;
         }
         else if (volt >= sharpThresh) {
           Serial.println("sharp");
           sharp = true;
           flat = false;
+          accArr = 0;
         }
         else {
           sharp = false;
           flat = false;
+          accArr = 1;
+        }
+    }
+    else if (i == 17) { //toggle octave
+        if (volt <= flatThresh) {
+          octUp = false;
+          octDown = true;
+          octArr = 2;
+        }
+        else if (volt >= sharpThresh) {
+          octUp = true;
+          octDown = false;
+          octArr = 0;
+        }
+        else {
+          octUp = false;
+          octDown = false;
+          octArr = 1;
         }
     }
     else if (i == 13) {
-      Serial.println(volt);
       if (octaveShift > -3 && volt >= thresh) {
         Serial.println("octave down button");
         if (lastOctaveDown == 0 || ((millis() - lastOctaveDown) > 200)) {
@@ -118,7 +147,7 @@ void loop() {
     }
     else if (i == 14) {
       if (volt >= thresh) {
-          Serial.println("middle C button");
+//          Serial.println("middle C button");
         octaveShift = 0;
       }
     }
@@ -132,8 +161,6 @@ void loop() {
       }
     }
     else {
-      vol = (volt+100.00)/(700.00) * 100.00;
-      note = CKeyNote[i] + 12*octaveShift;
       if (sharp) {
           showNotes(CKeySNoteName);
       }
@@ -141,40 +168,132 @@ void loop() {
           showNotes(CKeyFNoteName);
       }
       else {
-        showNotes(CKeyNoteName); 
+          showNotes(CKeyNoteName); 
       }
+//      if (octDown) {
+//        if (!octDowned) {
+//          togOctaveShift = -1;
+//          octDowned = true;
+//          Serial.println("octave down");
+//        }
+//      }
+//      else if (octUp) {
+//        if (!octUped) {
+//          togOctaveShift = 1;
+//          octUped = true;
+//          Serial.println("octave up");
+//        }
+//      }
+//      else {
+//        octUped = false;
+//        octDowned = false;
+//        togOctaveShift = 0;
+//      }
+      vol = (volt+100.00)/(700.00) * 100.00;
+//      note = CKeyNote[i] + 12*(octaveShift+togOctaveShift);
+      note = CKeyNote[i] + NoteVar[octArr][accArr];
       if (volt >= thresh) {
-        Serial.println(i);
-        Serial.println(note);
-          if (NoteOn[i]) {
-            usbMIDI.sendControlChange(7,vol,i);
-            
-            if (sharp) {
-              usbMIDI.sendNoteOff(note,vol,i); 
-              usbMIDI.sendNoteOff(note-1,vol,i); 
-              usbMIDI.sendNoteOn(note+1,vol,i);
-            }
-            else if (flat) {
-              usbMIDI.sendNoteOff(note,vol,i); 
-              usbMIDI.sendNoteOff(note+1,vol,i); 
-              usbMIDI.sendNoteOn(note-1,vol,i);
+//        Serial.println(i);
+//        Serial.println(note);
+        for (int o = 0; o < 3; o++) {
+          for (int a = 0; a <3; a++) {
+            int testNote = CKeyNote[i] + NoteVar[o][a];
+            if (o == octArr && a == accArr) {
+              if (NoteOn[testNote-21]) { //already playing
+                usbMIDI.sendControlChange(7,vol,i);
+                Serial.println("hold note");
+                Serial.println(note);
+              }
+              else {
+                Serial.println("play note");
+                Serial.println(note);
+                usbMIDI.sendNoteOn(testNote,vol,i);
+                NoteOn[testNote-21] = true;
+              }
             }
             else {
-              usbMIDI.sendNoteOn(note,vol,i);
-              usbMIDI.sendControlChange(7,vol,i);
-              usbMIDI.sendNoteOff(note+1,vol,i); 
-              usbMIDI.sendNoteOff(note-1,vol,i); 
+              NoteOn[testNote-21] = false;
+              usbMIDI.sendNoteOff(testNote,vol,i);
             }
           }
-          else {
-            NoteOn[i] = true;
-            usbMIDI.sendNoteOn(note,vol,i);
-          }
+        }
+
+
+        
+//          if (NoteOn[note - 21]) {
+            
+//            int noteOffOct = 0;
+//            if (octUped) {
+//              noteOffOct = -12;
+//            }
+//            else if (octDowned) {
+//              noteOffOct = 12;
+//            }
+//            else {
+//              noteOffOct=0;
+//            }
+//            usbMIDI.sendControlChange(7,vol,i);
+//            int newNote = note;
+//            int oldNote = note;
+//            if (sharp) {
+//              newNote += 1;
+//              oldNote -= 1;   
+//            }
+//            else if (flat) {
+//              newNote -= 1;
+//              oldNote += 1;
+//            }
+//            if (octUp) {
+//              newNote += 12;
+//              oldNote -= 12;
+//            }
+//            else if (octDown) {
+//              newNote -= 12;
+//              oldNote += 12;
+//            }
+//            if (sharp || flat || octUp || octDown) {
+//              usbMIDI.sendNoteOn(newNote,vol,i);
+//              usbMIDI.sendNoteOff(oldNote,vol,i);
+//              usbMIDI.sendNoteOff(note,vol,i);
+//            }
+//            else {
+//              usbMIDI.sendNoteOn(note,vol,i);
+//              usbMIDI.sendControlChange(7,vol,i);
+//              usbMIDI.
+//            }
+            
+//            if (sharp) {
+//              usbMIDI.sendNoteOff(note,vol,i); 
+//              usbMIDI.sendNoteOff(note-1,vol,i); 
+//              usbMIDI.sendNoteOn(note+1,vol,i);
+//              usbMIDI.sendNoteOff(note+noteOffOct,vol,i); 
+//              usbMIDI.sendNoteOff(note-1+noteOffOct,vol,i);
+//            }
+//            else if (flat) {
+//              usbMIDI.sendNoteOff(note,vol,i); 
+//              usbMIDI.sendNoteOff(note+1,vol,i); 
+//              usbMIDI.sendNoteOn(note-1,vol,i);
+//              usbMIDI.sendNoteOff(note+noteOffOct,vol,i); 
+//              usbMIDI.sendNoteOff(note+1+noteOffOct,vol,i);
+//            }
+//            else {
+//              usbMIDI.sendNoteOn(note,vol,i);
+//              usbMIDI.sendControlChange(7,vol,i);
+//              usbMIDI.sendNoteOff(note+1,vol,i); 
+//              usbMIDI.sendNoteOff(note-1,vol,i); 
+//              usbMIDI.sendNoteOff(note+1+noteOffOct,vol,i); 
+//              usbMIDI.sendNoteOff(note-1+noteOffOct,vol,i); 
+//            }
+//          }
+//          else {
+//            NoteOn[i] = true;
+//            usbMIDI.sendNoteOn(note,vol,i);
+//          }
       }
       else {
-        if (NoteOn[i]) {          
+        if (NoteOn[note-21]) {          
           usbMIDI.sendNoteOff(note,vol,i);
-          NoteOn[i] = false;
+          NoteOn[note-21] = false;
         }
       }
     }
