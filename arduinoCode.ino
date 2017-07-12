@@ -37,9 +37,9 @@ unsigned char CKeyNote[13] = {60,61,62,63,64,65,66,67,68,69,70,71,72};
 bool NoteOn[86];
 int NoteVar[3][3] = 
 {
-  {13,12,11},
-  {1,0,-1},
-  {-11,-12,-13}
+  {-13,-12,-11},
+  {-1,0,1},
+  {11,12,13}
 };
 
 //     | shar | natu | flat
@@ -86,13 +86,13 @@ void loop() {
           Serial.println("flat");
           sharp = false;
           flat = true;
-          accArr = 2;
+          accArr = 0;
         }
         else if (volt >= sharpThresh) {
           Serial.println("sharp");
           sharp = true;
           flat = false;
-          accArr = 0;
+          accArr = 2;
         }
         else {
           sharp = false;
@@ -105,13 +105,13 @@ void loop() {
           Serial.println("OctDown");
           octUp = false;
           octDown = true;
-          octArr = 2;
+          octArr = 0;
         }
         else if (volt >= sharpThresh) {
           Serial.println("OctUp");
           octUp = true;
           octDown = false;
-          octArr = 0;
+          octArr = 2;
         }
         else {
           octUp = false;
@@ -146,7 +146,7 @@ void loop() {
     else {
       vol = (volt+100.00)/(700.00) * 100.00;
       note = CKeyNote[i] + 12*octaveShift + NoteVar[octArr][accArr];
-
+      showNotes(octaveShift + octArr);
       if (volt >= thresh) {
         for (int o = 0; o < 3; o++) {
           for (int a = 0; a <3; a++) {
@@ -178,8 +178,8 @@ void loop() {
   delay(50);
 }
 
-void showNotes(byte notes[]){
+void showNotes(int octPos){
   left.setRow(0, 1, 0x4E);
-  left.setDigit(0, 0, 4, false);
+  left.setDigit(0, 0, 4+octPos, false);
 }
 
