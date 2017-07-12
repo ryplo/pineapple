@@ -32,21 +32,9 @@
 // A19 (38)
 
 int thresh = 100;
-byte flatName = B11111;
-byte sharpName = B1011011;
-
 int pinNum[18] = {9,8,7,6,5,4,3,2,1,0,67,66,39,38,37,36,32,31};
-//int pinNum[6] = {9,8,7,6,5,31};
-//int pinNum[17] = {9,8,7,6,5,4,3,2,1,0,67,66,39,38,37,36,31};
 unsigned char CKeyNote[13] = {60,61,62,63,64,65,66,67,68,69,70,71,72};
-//unsigned char CKeyNote[13] = {60,61,62,63,64,65,66,67,68,69,70,71,72};
-byte CKeyNoteName[16] = {0x4E,0,0x7E,0,0x4F,0,0x47,0,0x5F,0,0x77,0,0x7F,0,0x4E,0};
-byte CKeyFNoteName[16] = {0x4E,flatName,0x7E,flatName,0x4F,flatName,0x47,flatName,0x5F,flatName,0x77,flatName,0x7F,flatName,0x4E,flatName};
-byte CKeySNoteName[16] = {0x4E,sharpName,0x7E,sharpName,0x4F,sharpName,0x47,sharpName,0x5F,sharpName,0x77,sharpName,0x7F,sharpName,0x4E,sharpName};
-
-unsigned char KeyNote[8];
 bool NoteOn[86];
-//bool NoteOn[13] = {false, false, false, false, false, false, false, false, false, false, false, false, false};
 int NoteVar[3][3] = 
 {
   {13,12,11},
@@ -61,20 +49,13 @@ int NoteVar[3][3] =
 int octArr = 0;
 int accArr = 0;
 
-bool volControl = true;
-bool cKey = true;
-bool fKey = false;
-bool bfKey = false;
 const int sharpThresh = 700;
 const int flatThresh = 350;
 bool flat = false;
 bool sharp = false;
 bool octDown = false;
 bool octUp = false;
-bool octDowned = false;
-bool octUped = false;
 int octaveShift = 0;
-int togOctaveShift = 0;
 unsigned long lastOctaveDown;
 unsigned long lastOctaveUp;
 
@@ -163,15 +144,6 @@ void loop() {
       }
     }
     else {
-      if (sharp) {
-          showNotes(CKeySNoteName);
-      }
-      else if (flat) {
-          showNotes(CKeyFNoteName);
-      }
-      else {
-          showNotes(CKeyNoteName); 
-      }
       vol = (volt+100.00)/(700.00) * 100.00;
       note = CKeyNote[i] + 12*octaveShift + NoteVar[octArr][accArr];
 
@@ -207,11 +179,7 @@ void loop() {
 }
 
 void showNotes(byte notes[]){
-  for (int i = 0; i < 8; i++) {
-    left.setRow(0, 7-i, notes[i]);
-  }
-  for (int i = 0; i < 8; i++) {
-    right.setRow(0, 7-i, notes[i+8]);
-  }
+  left.setRow(0, 1, 0x4E);
+  left.setDigit(0, 0, 4, false);
 }
 
