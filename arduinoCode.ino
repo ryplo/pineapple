@@ -23,6 +23,23 @@
 // 19 A13 (32) - Toggle Vibrato
 // 20 A12 (31) - Toggle Octave
 
+// D0 - display
+// D1 - display
+// D2 - display
+// D3 - Note1 (C)
+// D4 - Note2 (Cs)
+// D5 - Note3 (D)
+// D6 - Note4 (Ds)
+// D7 - Note5 (E)
+// D8 - Note6 (F)
+// D9 - Note7 (Fs)
+// D10 - Note8 (G)
+// D11 - Note9 (Gs)
+// D12 - Note10 (A)
+// D24 - Note11 (As)
+// D25 - Note12 (B)
+// D26 - Note13 (C)
+
 // A10 (64)
 // A11 (65)
 // A12 (31)
@@ -37,6 +54,7 @@
 int thresh = 200;
 int pinNum[21] = {9,8,7,6,5,4,3,2,1,0,67,66,39,38,37,36,35,34,33,32,31};
 //int pinNum[18] = {9,8,7,6,5,4,3,2,1,0,67,66,39,38,37,36,35,34,32,31};
+int dPinNum[13] = {3,4,5,6,7,8,9,10,11,12,24,25,26};
 unsigned char CKeyNote[13] = {60,61,62,63,64,65,66,67,68,69,70,71,72};
 bool NoteOn[86];
 int NoteVar[3][3] = 
@@ -78,6 +96,10 @@ void setup() {
   right.shutdown(0, false);  // turns on display
   right.setIntensity(0, 15); // 15 = brightest
   right.clearDisplay(0);
+  for (int i = 0; i < 13; i++) {
+    pinMode(dPinNum[i], OUTPUT);
+    digitalWrite(dPinNum[i], LOW);
+  }
 }
 
 void loop() {
@@ -127,7 +149,7 @@ void loop() {
         }
     }
     else if (i == 13) {
-      if (octaveShift > -3 && volt >= thresh) {
+      if (octaveShift > -3 && volt == 0) {
         if (lastOctaveDown == 0 || ((millis() - lastOctaveDown) > 200)) {
           octaveShift -= 1;
           Serial.println("octave down button");
@@ -189,6 +211,7 @@ void loop() {
       showNotes(octaveShift + octArr);
       showPre(pre1, pre2, pre3);
       if (volt >= thresh) {
+        digitalWrite(dPinNum[i], HIGH);
         for (int o = 0; o < 3; o++) {
           for (int a = 0; a <3; a++) {
             int testNote = CKeyNote[i] + 12*octaveShift + NoteVar[o][a];
@@ -209,6 +232,7 @@ void loop() {
         }
       }
       else {
+        digitalWrite(dPinNum[i], LOW);
         if (NoteOn[note-21]) {          
           usbMIDI.sendNoteOff(note,vol,i);
           NoteOn[note-21] = false;
