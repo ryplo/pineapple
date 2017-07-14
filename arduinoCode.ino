@@ -34,8 +34,8 @@
 // A18 (37)
 // A19 (38)
 
-int thresh = 100;
-int pinNum[18] = {9,8,7,6,5,4,3,2,1,0,67,66,39,38,37,36,32,31};
+int thresh = 200;
+int pinNum[21] = {9,8,7,6,5,4,3,2,1,0,67,66,39,38,37,36,35,34,33,32,31};
 //int pinNum[18] = {9,8,7,6,5,4,3,2,1,0,67,66,39,38,37,36,35,34,32,31};
 unsigned char CKeyNote[13] = {60,61,62,63,64,65,66,67,68,69,70,71,72};
 bool NoteOn[86];
@@ -46,10 +46,10 @@ int NoteVar[3][3] =
   {11,12,13}
 };
 
-//     | shar | natu | flat
-// up  |  13  |  12  |  11 
-// 0   |   1  |   0  |  -1
-// dow | -11  | -12  | -13
+//     | flat | natu | shar
+// dow |  -13 |  -12 |  -11 
+// 0   |  -1  |   0  |  1
+// up  |  11  |  12  |  13
 int octArr = 0;
 int accArr = 0;
 
@@ -85,12 +85,10 @@ void loop() {
   int note = 0;
 
   double vol = 0;
-
-  for (int i = 0; i < 18; i++) {
-//      for (int i = 0; i < 21; i++) {
+  
+  for (int i = 0; i < 21; i++) {
     volt = analogRead(pinNum[i]);
-    if (i == 16) { //toggle vibrato
-//          if (i == 19) { //toggle vibrato
+    if (i == 19) { //toggle vibrato
         if (volt <= flatThresh) {
           Serial.println("flat");
           sharp = false;
@@ -109,14 +107,12 @@ void loop() {
           accArr = 1;
         }
     }
-    else if (i == 17) { //toggle octave
-//          else if (i == 20) { //toggle octave
+    else if (i == 20) { //toggle octave
         if (volt <= flatThresh) {
           Serial.println("OctDown");
           octUp = false;
           octDown = true;
           octArr = 0;
-          usbMIDI.sendProgramChange(2,1);
         }
         else if (volt >= sharpThresh) {
           Serial.println("OctUp");
@@ -132,9 +128,9 @@ void loop() {
     }
     else if (i == 13) {
       if (octaveShift > -3 && volt >= thresh) {
-        Serial.println("octave down button");
         if (lastOctaveDown == 0 || ((millis() - lastOctaveDown) > 200)) {
           octaveShift -= 1;
+          Serial.println("octave down button");
         }
        lastOctaveDown = millis();
       }
@@ -147,9 +143,9 @@ void loop() {
     }
     else if (i == 15) {
       if (octaveShift <= 3 && volt >= thresh) {
-        Serial.println("octave up button");
         if (lastOctaveUp == 0 || ((millis() - lastOctaveUp) > 200)) {
           octaveShift += 1;
+          Serial.println("octave up button");
         }
        lastOctaveUp = millis();
       }
@@ -161,6 +157,7 @@ void loop() {
           pre1 = true;
           pre2 = false;
           pre3 = false;
+          usbMIDI.sendProgramChange(0,1);
         }
       }
     }
@@ -171,6 +168,7 @@ void loop() {
           pre2 = true;
           pre1 = false;
           pre3 = false;
+          usbMIDI.sendProgramChange(1,1);
         }
       }
     }
@@ -181,14 +179,15 @@ void loop() {
           pre3 = true;
           pre2 = false;
           pre1 = false;
+          usbMIDI.sendProgramChange(2,1);
         }
       }
     }
-    showPre(pre1, pre2, pre3);
     else {
       vol = (volt+100.00)/(700.00) * 100.00;
       note = CKeyNote[i] + 12*octaveShift + NoteVar[octArr][accArr];
       showNotes(octaveShift + octArr);
+      showPre(pre1, pre2, pre3);
       if (volt >= thresh) {
         for (int o = 0; o < 3; o++) {
           for (int a = 0; a <3; a++) {
@@ -221,10 +220,8 @@ void loop() {
 }
 
 void showNotes(int octPos){
-  left.setDigit(0, 3, 5, false);
-  left.setRow(0, 2, B1101111);
-  left.setRow(0, 1, B0001111);
-  left.setDigit(0, 0, 4+octPos, false);
+  left.setRow(0, 7, 0x4E);
+  left.setDigit(0, 6, 3+octPos, false);
 }
 
 void showPre(bool pre1, bool pre2, bool pre3) {
@@ -238,7 +235,9 @@ void showPre(bool pre1, bool pre2, bool pre3) {
   else if (pre3) {
     pre = 3;
   }
-  left.setRow(0, 7, 0x4E);
-  left.setDigit(0, 6, pre, false);
+  left.setDigit(0, 3, 5, false);
+  left.setRow(0, 2, B1101111);
+  left.setRow(0, 1, B0001111);
+  left.setDigit(0, 0, pre, false);
 }
 
